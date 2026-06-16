@@ -1,0 +1,20 @@
+[W 260127 12:32:44 smartWebSocketV2:318] Attempting to resubscribe/reconnect (Attempt 1)...
+[W 260127 12:32:49 smartWebSocketV2:342] Connection closed due to max retry attempts reached.
+[E 260127 12:32:49 smartWebSocketV2:212] Error occurred during subscribe: Connection is already closed.
+[W 260127 12:34:09 smartWebSocketV2:318] Attempting to resubscribe/reconnect (Attempt 1)...
+[W 260127 13:57:24 smartWebSocketV2:342] Connection closed due to max retry attempts reached.
+[W 260127 13:57:24 smartWebSocketV2:342] Connection closed due to max retry attempts reached.
+[W 260127 13:57:24 smartWebSocketV2:342] Connection closed due to max retry attempts reached.
+[E 260127 13:57:24 smartWebSocketV2:212] Error occurred during subscribe: Connection is already closed.
+[W 260127 13:59:24 smartWebSocketV2:318] Attempting to resubscribe/reconnect (Attempt 1)...
+[W 260127 13:59:25 smartWebSocketV2:342] Connection closed due to max retry attempts reached.
+[E 260127 13:59:28 smartWebSocketV2:212] Error occurred during subscribe: Connection is already closed.
+[W 260127 14:06:05 smartWebSocketV2:318] Attempting to resubscribe/reconnect (Attempt 1)...
+[W 260127 14:06:15 smartWebSocketV2:342] Connection closed due to max retry attempts reached.
+[W 260127 14:06:15 smartWebSocketV2:342] Connection closed due to max retry attempts reached.
+[W 260127 14:06:15 smartWebSocketV2:342] Connection closed due to max retry attempts reached.
+[E 260127 14:06:20 smartWebSocketV2:212] Error occurred during subscribe: Connection is already closed.
+[W 260127 20:22:45 smartWebSocketV2:318] Attempting to resubscribe/reconnect (Attempt 1)...
+[W 260128 00:25:33 smartWebSocketV2:342] Connection closed due to max retry attempts reached.
+[W 260128 00:25:33 smartWebSocketV2:342] Connection closed due to max retry attempts reached.
+[W 260128 00:25:33 smartWebSocketV2:342] Connection closed due to max retry attempts reached.

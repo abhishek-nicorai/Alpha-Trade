@@ -1,0 +1,6 @@
+.env
+__pycache__/
+*.pyc
+backend/venv/
+trades.db
+.DS_Store
