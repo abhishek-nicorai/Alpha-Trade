@@ -12,6 +12,8 @@ export const botService = {
   getStatus: () => apiClient.get('/status'),
   triggerKill: () => apiClient.post('/risk/kill'),
   updateSettings: (settings) => apiClient.post('/settings/update', settings),
+  changeMode: (mode) =>
+  apiClient.post('/settings/mode', { mode }),
 
   getMarketMovers: (period) => apiClient.get(`/market/movers/${period}`),
   
@@ -20,4 +22,5 @@ export const botService = {
 
   searchStocks: (query) => apiClient.get(`/market/search?q=${query}`),
   addToWatchlist: (stock) => apiClient.post('/market/watchlist/add', stock),
+  getTradeHistory: () => apiClient.get('/trades/history'),
 };

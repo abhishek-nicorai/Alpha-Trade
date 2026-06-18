@@ -11,6 +11,7 @@ class Trade(Base):
     symbol = Column(String)
     entry_price = Column(Float)
     exit_price = Column(Float)
+    order_id = Column(String)
     qty = Column(Integer)
     side = Column(String)
     pnl = Column(Float)
@@ -23,7 +24,7 @@ class Config(Base):
     capital = Column(Float, default=10000.0)
     max_trades = Column(Integer, default=3)
     mode = Column(String, default="MANUAL") # MANUAL or INTELLIGENCE
-
+    trading_mode = Column(String, default="PAPER")
 # Database connection - creates trades.db in the project root
 engine = create_engine('sqlite:///../trades.db', connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

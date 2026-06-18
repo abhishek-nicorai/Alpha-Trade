@@ -24,3 +24,14 @@ async def update_settings(data: SettingsUpdate):
     db.commit()
     db.close()
     return {"message": "Settings synced successfully"}
+
+@router.post("/mode")
+async def update_mode(mode_data: dict):
+    # mode_data = {"mode": "LIVE"} or {"mode": "PAPER"}
+    db = SessionLocal()
+    config = db.query(models.Config).first()
+    if config:
+        config.trading_mode = mode_data['mode']
+        db.commit()
+    db.close()
+    return {"status": "success", "current_mode": mode_data['mode']}
