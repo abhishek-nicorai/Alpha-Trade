@@ -1,7 +1,8 @@
+import logging
+import asyncio
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import asyncio
-from contextlib import asynccontextmanager 
 
 # Modular Imports
 from app.api.v1.router import api_router
@@ -9,51 +10,62 @@ from app.db.models import Base
 from app.db.session import engine
 from app.main_bot import orchestrator
 
-# 1. Define the Lifespan (The most important logic for automation)
+# 1. Setup Logging (Helps you see exactly what the bot is doing)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%H:%M:%S",
+)
+logger = logging.getLogger("AlphaTrade-API")
+
+# 2. Define the Lifespan (Management of Bot & API lifecycle)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # --- STARTUP LOGIC ---
-    print("🚦 AlphaTrade API is starting up...")
+    # --- STARTUP ---
+    logger.info("🚦 Starting AlphaTrade API & Background Bot...")
     
-    # CRITICAL: This line launches the Trading Engine in the background
-    # It allows the API to serve the UI while the Bot trades concurrently
-    asyncio.create_task(orchestrator.run_forever())
-    
-    yield # The app stays in this state while running
+    # Initialize Database Tables
+    try:
+        Base.metadata.create_all(bind=engine)
+        logger.info("💾 Database tables synced successfully.")
+    except Exception as e:
+        logger.error(f"❌ DB Initialization Error: {e}")
 
-    # --- SHUTDOWN LOGIC ---
-    print("🚦 API shutting down... stopping bot.")
-    # This calls the stop() method we wrote to kill the WebSocket thread
+    # Launch Trading Engine as a Background Task
+    bot_task = asyncio.create_task(orchestrator.run_forever())
+    
+    yield  # API is now running and reachable
+    
+    # --- SHUTDOWN ---
+    logger.info("🚦 API shutting down... stopping background processes.")
     orchestrator.stop()
+    bot_task.cancel() # Ensure the background task is killed
+    logger.info("🛑 Bot stopped. Goodbye.")
 
-# 2. INITIALIZE APP with Lifespan
+# 3. INITIALIZE APP
 app = FastAPI(
-    title="AlphaTrade India Modular", 
-    lifespan=lifespan 
+    title="AlphaTrade India Modular",
+    description="Professional Algorithmic Trading System v1.0",
+    lifespan=lifespan
 )
 
-# 3. Enable CORS (Ensures React can talk to this server)
+# 4. ENABLE CORS (Allows React frontend to communicate)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=["*"], # In production, replace with your frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# 4. Initialize Database Tables automatically on start
-try:
-    Base.metadata.create_all(bind=engine)
-    print("💾 Database tables synced successfully.")
-except Exception as e:
-    print(f"⚠️ DB Initialization Error: {e}")
-
-# 5. Include Modular API Routes
+# 5. INCLUDE MODULAR ROUTES
+# This links all your endpoints (/dashboard, /market, /watchlist, etc.)
 app.include_router(api_router, prefix="/api/v1")
 
 @app.get("/")
-def root():
+async def root():
     return {
-        "message": "AlphaTrade Modular API is running",
-        "bot_status": "Operational" if orchestrator.is_running else "Standby"
+        "status": "online",
+        "bot_engine": "Operational" if orchestrator.is_running else "Standby",
+        "version": "1.0.0"
     }

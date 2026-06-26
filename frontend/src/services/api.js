@@ -23,4 +23,6 @@ export const botService = {
   searchStocks: (query) => apiClient.get(`/market/search?q=${query}`),
   addToWatchlist: (stock) => apiClient.post('/market/watchlist/add', stock),
   getTradeHistory: () => apiClient.get('/trades/history'),
+
+  syncWatchlist: (watchlist) => apiClient.post('/watchlist/sync', watchlist),
 };

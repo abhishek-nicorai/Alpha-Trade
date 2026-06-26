@@ -19,10 +19,10 @@ class AlphaTradeOrchestrator:
         self.api = None
         self.strategy = None
         self.streamer = None
-        self.watchlist = []
+        self.watchlist = [] # Stocks selected via React UI
         self.is_running = False
         self._stop_event = False  
-        self.streamer_started = False # Track if background thread is active
+        self.streamer_started = False 
 
     async def initialize(self):
         """Step 1: Broker Login & Service Setup"""
@@ -31,9 +31,12 @@ class AlphaTradeOrchestrator:
             self.api, jwt_token = self.auth.login()
             
             if self.api:
-                # Initialize Brain (Strategy) and Eyes (Streamer)
+                # 1. Initialize Strategy Brain
                 self.strategy = StrategyService(self.api, capital=10000)
-                self.streamer = DataStreamer(self.api)
+                
+                # 2. Initialize Streamer Eyes (Pass strategy instance for event-triggering)
+                self.streamer = DataStreamer(self.api, self.strategy)
+                
                 self.is_running = True
                 return True
             return False
@@ -55,72 +58,53 @@ class AlphaTradeOrchestrator:
     def is_market_open(self):
         """Check if time is between 09:15 and 15:30 IST"""
         now = datetime.now().time()
-        # For night testing, you can temporarily return True
+        # return True # Uncomment this for testing at night
         return time(9, 15) <= now <= time(15, 30)
 
     async def run_forever(self):
-        """The Main Master Loop"""
+        """
+        THE MANAGER LOOP: 
+        This loop now ONLY handles UI updates and status monitoring.
+        Strategy execution is handled by the WebSocket Events in streamer.py.
+        """
         if not await self.initialize():
-            logger.error("🛑 System could not start. Check your credentials.")
+            logger.error("🛑 System could not start. Check credentials.")
             return
 
-        logger.info("🚀 AlphaTrade Bot is now LIVE and monitoring.")
+        logger.info("🚀 AlphaTrade Manager is active.")
 
         while not self._stop_event:
             try:
-                # 1. UI HEARTBEAT: Always keep React updated
-                # We send the list of symbols being watched so the Dashboard can show names
+                # 1. UI HEARTBEAT: Push State to React Dashboard
+                # We fetch latest prices from bot_state (updated by WebSocket)
                 await ui_manager.broadcast({
                     "type": "SYSTEM_UPDATE",
                     "status": "OPERATIONAL" if self.is_running else "OFFLINE",
-                    "active_trades": len(self.strategy.active_positions) if self.strategy else 0,
-                    "pnl": self.strategy.risk.current_mtm if self.strategy else 0.0,
-                    "margin": self.strategy.risk.total_capital if self.strategy else 10000,
-                    "watchlist_symbols": [s['symbol'] for s in self.watchlist]
+                    "active_trades": len(self.strategy.active_positions),
+                    "pnl": round(self.strategy.risk.current_mtm, 2),
+                    "margin": self.strategy.risk.total_capital,
+                    "watchlist_count": len(self.watchlist),
+                    "prices": bot_state.latest_prices 
                 })
 
-                if self.is_market_open():
-                    # 2. SCANNER LOGIC: Populate Watchlist
-                    if not self.watchlist:
-                        logger.info("🔍 Running Market Intelligence Scanner...")
-                        self.watchlist = self.strategy.scan_markets()
-                        
-                        # FALLBACK: If scanner empty, use defaults
-                        if not self.watchlist:
-                            logger.warning("⚠️ No Open=Low stocks. Adding Fallbacks.")
-                            self.watchlist = [
-                                {"symbol": "ZOMATO", "token": "15590"},
-                                {"symbol": "TATAMOTORS", "token": "3456"}
-                            ]
-                    
-                    # 3. STREAMER START: Launch background thread ONCE
-                    if self.watchlist and not self.streamer_started:
-                        tokens = [{"exchangeType": 1, "tokens": [s['token'] for s in self.watchlist]}]
-                        logger.info(f"🧵 Starting Background Data Thread for: {tokens}")
-                        # This method in streamer.py now uses threading.Thread
-                        self.streamer.connect_and_watch(tokens)
-                        self.streamer_started = True
+                # 2. MARKET HOURS CHECK
+                if not self.is_market_open():
+                    if self.streamer_started:
+                        logger.info("🕒 Market Closed. Stopping background stream.")
+                        self.stop() # Graceful exit at 3:30 PM
+                
+                # 3. WAITING FOR USER INPUT
+                if self.is_market_open() and not self.watchlist:
+                    # In this version, we wait for the user to deploy 5 stocks via React
+                    pass 
 
-                    # 4. STRATEGY CHECK: Iterate through shared memory
-                    for stock in self.watchlist:
-                        token = stock['token']
-                        symbol = stock['symbol']
-                        
-                        # Get live price from the 'Eyes' (updated by the background thread)
-                        current_price = bot_state.latest_prices.get(token)
-                        
-                        if current_price:
-                            self.strategy.check_for_signals(symbol, token, current_price)
-
-                else:
-                    logger.info("😴 Market is Closed. Bot in standby.")
-
-                # Breathe time (2 seconds is standard for retail bots)
+                # 4. BREATHE: We sleep longer because the heavy lifting 
+                # is happening in the WebSocket thread, not here.
                 await asyncio.sleep(2)
 
             except Exception as e:
-                logger.error(f"⚠️ Master Loop Error: {e}")
+                logger.error(f"⚠️ Manager Loop Error: {e}")
                 await asyncio.sleep(5)
 
-# Global Instance
+# Create a single instance to be imported by main.py
 orchestrator = AlphaTradeOrchestrator()
